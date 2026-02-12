@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>叙事医学与NEI网络：临床科普交互平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #fbfaf3; /* 象牙白背景 */
+            color: #1a2a3a;
+        }
+        h1, h2, h3, .serif {
+            font-family: 'Noto Serif SC', serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+        .active-tab {
+            background-color: #004a7c;
+            color: white;
+        }
+        .inactive-tab {
+            background-color: #e2e8f0;
+            color: #4a5568;
+        }
+        .transition-all-300 {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-teal-100 selection:text-teal-900">
+
+    <!-- Chosen Palette: Narrative Medical (Ivory #fbfaf3, Deep Blue #004a7c, Healing Green #20c997, Alert Red #dc3545) -->
+
+    <!-- Application Structure Plan: 
+         The app is designed as a "Doctor's Digital Workbench" for understanding patient communication.
+         1. Hero Section: Sets the tone, defining the shift from "Instruction" to "Narrative".
+         2. Paradigm Shifter: Interactive toggle to contrast Traditional vs. Narrative approaches directly.
+         3. The Bio-Dashboard (NEI Simulator): The core interactive piece. Users toggle emotional states to see real-time changes in physiological markers (IL-6, IgA, etc.), visualizing the invisible mind-body link.
+         4. Clinical Evidence Lab: visualizes the hard data (Cold risk, Cancer risk) using Chart.js to provide scientific backing.
+         5. Somatic Map: An interactive body grid connecting symptoms to stories, reinforcing the practical application.
+         6. Action Roadmap: A vertical step-by-step guide for implementation.
+         This structure moves from Concept -> Mechanism -> Evidence -> Practice -> Action.
+    -->
+
+    <!-- Visualization & Content Choices:
+         1. Paradigm Shift -> Goal: Compare -> Interaction: Tab Switch -> Justification: Direct A/B comparison makes the philosophical shift concrete. -> HTML/JS Toggle.
+         2. NEI Network -> Goal: Inform/Simulate -> Interaction: Emotion Buttons -> Justification: Users need to "feel" the impact of emotions on biology. Clicking "Anxiety" and seeing red arrows creates visceral understanding. -> Dynamic HTML Grid + JS Data binding.
+         3. Cold Risk -> Goal: Compare -> Interaction: Bar Chart -> Justification: Quantifiable risk requires precise bars. -> Chart.js.
+         4. Type C Risk -> Goal: Relationship -> Interaction: Doughnut Chart -> Justification: Visualizing the magnitude of risk multiplier. -> Chart.js.
+         5. Roadmap -> Goal: Change -> Interaction: Scroll/Hover -> Justification: Linear progression. -> HTML/Tailwind Timeline.
+         CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-user-doctor text-[#004a7c] text-2xl mr-3"></i>
+                    <span class="font-bold text-xl text-[#004a7c] tracking-tight">叙事医学·临床科普站</span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <button onclick="scrollToSection('paradigm')" class="text-gray-600 hover:text-[#20c997] font-medium transition">范式重构</button>
+                    <button onclick="scrollToSection('mechanism')" class="text-gray-600 hover:text-[#20c997] font-medium transition">NEI机制</button>
+                    <button onclick="scrollToSection('evidence')" class="text-gray-600 hover:text-[#20c997] font-medium transition">循证数据</button>
+                    <button onclick="scrollToSection('practice')" class="text-gray-600 hover:text-[#20c997] font-medium transition">临床实践</button>
+                </div>
+                <button class="md:hidden text-gray-600" id="mobile-menu-btn">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100 p-4">
+            <div class="flex flex-col space-y-4">
+                <button onclick="scrollToSection('paradigm')" class="text-left text-gray-600 font-medium">范式重构</button>
+                <button onclick="scrollToSection('mechanism')" class="text-left text-gray-600 font-medium">NEI机制</button>
+                <button onclick="scrollToSection('evidence')" class="text-left text-gray-600 font-medium">循证数据</button>
+                <button onclick="scrollToSection('practice')" class="text-left text-gray-600 font-medium">临床实践</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="relative bg-gradient-to-br from-[#fbfaf3] to-[#e6f4f1] pt-16 pb-24 overflow-hidden">
+        <div class="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
+            <!-- Abstract background shape using CSS borders/radius -->
+            <div class="w-full h-full bg-[#20c997] rounded-bl-[50%]"></div>
+        </div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+            <div class="inline-block px-4 py-1 rounded-full bg-[#e0f7fa] text-[#006064] text-sm font-semibold mb-6 shadow-sm">
+                从“治疗疾病”到“关怀全人”
+            </div>
+            <h1 class="text-4xl md:text-6xl font-bold text-[#002d51] mb-6 leading-tight">
+                医生科普的<span class="text-[#20c997]">叙事转向</span>
+            </h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-10 leading-relaxed">
+                打破知识赤字误区，探索神经-内分泌-免疫（NEI）网络的奥秘。<br>
+                让我们一起从冷门视角重构临床沟通，将医学真相编织进患者的生命叙事中。
+            </p>
+            <div class="flex justify-center gap-4">
+                <button onclick="scrollToSection('paradigm')" class="bg-[#004a7c] text-white px-8 py-3 rounded-lg shadow-lg hover:bg-[#003865] transition transform hover:-translate-y-1">
+                    开始探索 <i class="fa-solid fa-arrow-down ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20 space-y-24 pb-24">
+
+        <!-- Section 1: Paradigm Shift (Interactive Comparison) -->
+        <section id="paradigm" class="scroll-mt-24">
+            <div class="bg-white rounded-2xl p-8 md:p-12 card-shadow border border-gray-100">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-bold text-[#002d51] mb-4">临床沟通范式重构</h2>
+                    <p class="text-gray-500 max-w-2xl mx-auto">
+                        传统科普往往假设患者因“无知”而患病，而叙事医学则试图理解患者的“疾痛故事”。点击下方按钮对比两种模式。
+                    </p>
+                </div>
+
+                <div class="flex justify-center mb-8">
+                    <div class="bg-gray-100 p-1 rounded-xl inline-flex">
+                        <button id="btn-traditional" onclick="setParadigm('traditional')" class="px-6 py-2 rounded-lg font-medium text-sm transition-all-300 active-tab shadow-sm">
+                            <i class="fa-solid fa-bullhorn mr-2"></i>传统宣教
+                        </button>
+                        <button id="btn-narrative" onclick="setParadigm('narrative')" class="px-6 py-2 rounded-lg font-medium text-sm transition-all-300 inactive-tab">
+                            <i class="fa-solid fa-heart-pulse mr-2"></i>叙事沟通
+                        </button>
+                    </div>
+                </div>
+
+                <div id="paradigm-content" class="grid md:grid-cols-2 gap-8 items-center min-h-[300px]">
+                    <!-- Content injected by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: NEI Mechanism (Bio-Dashboard) -->
+        <section id="mechanism" class="scroll-mt-24">
+            <div class="grid lg:grid-cols-3 gap-8">
+                <!-- Intro Column -->
+                <div class="lg:col-span-1">
+                    <h2 class="text-3xl font-bold text-[#002d51] mb-6">NEI 网络模拟器</h2>
+                    <p class="text-gray-600 mb-6 leading-relaxed">
+                        <strong>神经-内分泌-免疫 (NEI) 网络</strong>是连接大脑与身体的生物高速公路。
+                    </p>
+                    <p class="text-gray-600 mb-6 leading-relaxed">
+                        情绪不仅是心理活动，更是具体的化学信使。试着点击右侧的“情绪按钮”，观察它们如何实时改变核心生理指标。
+                    </p>
+                    <div class="bg-blue-50 p-6 rounded-xl border-l-4 border-[#004a7c]">
+                        <h4 class="font-bold text-[#004a7c] mb-2"><i class="fa-solid fa-lightbulb mr-2"></i>核心洞察</h4>
+                        <p class="text-sm text-gray-700">这不仅是心情好坏的问题，而是一场体内免疫系统的稳态博弈。</p>
+                    </div>
+                </div>
+
+                <!-- Interactive Dashboard -->
+                <div class="lg:col-span-2 bg-white rounded-2xl p-6 md:p-8 card-shadow border border-gray-200">
+                    <div class="flex justify-center space-x-4 mb-8">
+                        <button onclick="simulateEmotion('positive')" class="flex items-center px-6 py-3 bg-[#20c997] hover:bg-[#19a97d] text-white rounded-lg shadow-md transition transform active:scale-95">
+                            <i class="fa-regular fa-face-smile text-xl mr-2"></i> 积极/喜悦
+                        </button>
+                        <button onclick="simulateEmotion('negative')" class="flex items-center px-6 py-3 bg-[#dc3545] hover:bg-[#c82333] text-white rounded-lg shadow-md transition transform active:scale-95">
+                            <i class="fa-regular fa-face-frown text-xl mr-2"></i> 焦虑/抑郁
+                        </button>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <!-- Marker 1 -->
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 transition-colors duration-500" id="card-il6">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold text-gray-700">炎症因子 (IL-6)</h4>
+                                <i class="fa-solid fa-fire-flame-curved text-gray-400" id="icon-il6"></i>
+                            </div>
+                            <div class="text-2xl font-bold mb-1" id="val-il6">--</div>
+                            <p class="text-xs text-gray-500" id="desc-il6">等待模拟...</p>
+                        </div>
+
+                        <!-- Marker 2 -->
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 transition-colors duration-500" id="card-iga">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold text-gray-700">黏膜免疫 (IgA)</h4>
+                                <i class="fa-solid fa-shield-virus text-gray-400" id="icon-iga"></i>
+                            </div>
+                            <div class="text-2xl font-bold mb-1" id="val-iga">--</div>
+                            <p class="text-xs text-gray-500" id="desc-iga">等待模拟...</p>
+                        </div>
+
+                        <!-- Marker 3 -->
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 transition-colors duration-500" id="card-opioid">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold text-gray-700">内源性阿片肽</h4>
+                                <i class="fa-solid fa-capsules text-gray-400" id="icon-opioid"></i>
+                            </div>
+                            <div class="text-2xl font-bold mb-1" id="val-opioid">--</div>
+                            <p class="text-xs text-gray-500" id="desc-opioid">等待模拟...</p>
+                        </div>
+
+                        <!-- Marker 4 -->
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 transition-colors duration-500" id="card-nk">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold text-gray-700">NK细胞活性</h4>
+                                <i class="fa-solid fa-crosshairs text-gray-400" id="icon-nk"></i>
+                            </div>
+                            <div class="text-2xl font-bold mb-1" id="val-nk">--</div>
+                            <p class="text-xs text-gray-500" id="desc-nk">等待模拟...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Evidence (Charts) -->
+        <section id="evidence" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-[#002d51] mb-4">循证数据：情绪的临床代价</h2>
+                <p class="text-gray-600 max-w-3xl mx-auto">
+                    这些不是玄学，而是统计学。以下数据展示了长期心理状态如何转化为具体的疾病风险。
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-10">
+                <!-- Chart 1: Cold Risk -->
+                <div class="bg-white p-6 rounded-2xl card-shadow border border-gray-100 flex flex-col">
+                    <h3 class="text-xl font-bold text-[#004a7c] mb-2 text-center">应激暴露下的感冒风险</h3>
+                    <p class="text-sm text-gray-500 mb-6 text-center">纵向研究显示，积极情绪水平与感染发病率呈负相关</p>
+                    <div class="chart-container flex-grow">
+                        <canvas id="coldRiskChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Type C Personality -->
+                <div class="bg-white p-6 rounded-2xl card-shadow border border-gray-100 flex flex-col">
+                    <h3 class="text-xl font-bold text-[#004a7c] mb-2 text-center">C型性格与健康风险</h3>
+                    <p class="text-sm text-gray-500 mb-6 text-center">长期抑制负面情绪（C型性格）的人群统计特征</p>
+                    <div class="chart-container flex-grow">
+                        <canvas id="typeCChart"></canvas>
+                    </div>
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg text-sm text-gray-600">
+                        <strong>C型性格特征：</strong> 忍气吞声、性格内向、过度妥协。
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Somatic Map (Symptom Decoder) -->
+        <section id="practice" class="scroll-mt-24">
+            <div class="bg-white rounded-2xl overflow-hidden card-shadow">
+                <div class="p-8 md:p-12 bg-[#004a7c] text-white">
+                    <h2 class="text-3xl font-bold mb-4">身体的“情绪地图”</h2>
+                    <p class="text-blue-100 text-lg">
+                        当语言无法表达痛苦时，器官会替我们说话。点击下方系统图标，解读常见临床症状背后的叙事逻辑。
+                    </p>
+                </div>
+                
+                <div class="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+                    <!-- Gut -->
+                    <div class="group p-8 hover:bg-gray-50 transition cursor-pointer" onclick="toggleSymptom('gut')">
+                        <div class="flex items-center justify-center w-16 h-16 bg-blue-100 text-[#004a7c] rounded-full mb-6 mx-auto group-hover:bg-[#004a7c] group-hover:text-white transition">
+                            <i class="fa-solid fa-stomach text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-center text-gray-800 mb-3">消化系统</h3>
+                        <p class="text-center text-gray-500 text-sm mb-4">点击查看详情</p>
+                        <div id="desc-gut" class="hidden text-gray-600 text-sm leading-relaxed text-center bg-white p-4 rounded-lg border border-gray-100 shadow-sm animate-fade-in">
+                            <strong>肠脑轴反馈：</strong><br>
+                            胃肠道被称为“第二大脑”。焦虑往往直接映射为胃胀或呕吐。压力破坏菌群平衡，代谢产物反向加剧大脑的负面情绪。
+                        </div>
+                    </div>
+
+                    <!-- Lungs -->
+                    <div class="group p-8 hover:bg-gray-50 transition cursor-pointer" onclick="toggleSymptom('lungs')">
+                        <div class="flex items-center justify-center w-16 h-16 bg-teal-100 text-[#20c997] rounded-full mb-6 mx-auto group-hover:bg-[#20c997] group-hover:text-white transition">
+                            <i class="fa-solid fa-lungs text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-center text-gray-800 mb-3">呼吸系统</h3>
+                        <p class="text-center text-gray-500 text-sm mb-4">点击查看详情</p>
+                        <div id="desc-lungs" class="hidden text-gray-600 text-sm leading-relaxed text-center bg-white p-4 rounded-lg border border-gray-100 shadow-sm animate-fade-in">
+                            <strong>压抑的隐喻：</strong><br>
+                            呼吸系统的症状常与无法释放的悲伤或压抑有关。支气管高反应性（如哮喘）可能是在潜意识中对令人窒息的环境的生理反抗。
+                        </div>
+                    </div>
+
+                    <!-- Skin -->
+                    <div class="group p-8 hover:bg-gray-50 transition cursor-pointer" onclick="toggleSymptom('skin')">
+                        <div class="flex items-center justify-center w-16 h-16 bg-red-100 text-[#dc3545] rounded-full mb-6 mx-auto group-hover:bg-[#dc3545] group-hover:text-white transition">
+                            <i class="fa-solid fa-hand-dots text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-center text-gray-800 mb-3">皮肤系统</h3>
+                        <p class="text-center text-gray-500 text-sm mb-4">点击查看详情</p>
+                        <div id="desc-skin" class="hidden text-gray-600 text-sm leading-relaxed text-center bg-white p-4 rounded-lg border border-gray-100 shadow-sm animate-fade-in">
+                            <strong>边界的冲突：</strong><br>
+                            皮肤是身体与外界的边界。当个体感到无法掌控生活或界限被侵犯时，亢进的免疫系统常通过皮疹、过敏来表达这种“炎症”状态。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Roadmap -->
+        <section class="scroll-mt-24 pb-12">
+            <h2 class="text-3xl font-bold text-[#002d51] mb-12 text-center">打造医生个人品牌的行动路径</h2>
+            <div class="max-w-4xl mx-auto">
+                <div class="relative">
+                    <!-- Vertical Line -->
+                    <div class="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-gray-200"></div>
+
+                    <!-- Step 1 -->
+                    <div class="relative flex items-center justify-between mb-12">
+                        <div class="w-5/12 text-right pr-8">
+                            <h3 class="text-xl font-bold text-[#004a7c]">1. 视角沉淀</h3>
+                            <p class="text-gray-600 mt-2">超越纯生物学，引入社会学、心理学视角，构建全人观。</p>
+                        </div>
+                        <div class="absolute left-1/2 transform -translate-x-1/2 w-8 h-8 bg-[#20c997] rounded-full border-4 border-white shadow-md z-10"></div>
+                        <div class="w-5/12 pl-8"></div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="relative flex items-center justify-between mb-12">
+                        <div class="w-5/12"></div>
+                        <div class="absolute left-1/2 transform -translate-x-1/2 w-8 h-8 bg-white border-4 border-[#004a7c] rounded-full z-10"></div>
+                        <div class="w-5/12 pl-8 text-left">
+                            <h3 class="text-xl font-bold text-[#004a7c]">2. 叙事转化</h3>
+                            <p class="text-gray-600 mt-2">将晦涩的NEI网络原理，翻译成患者听得懂的生命故事。</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="relative flex items-center justify-between mb-12">
+                        <div class="w-5/12 text-right pr-8">
+                            <h3 class="text-xl font-bold text-[#004a7c]">3. 认知干预</h3>
+                            <p class="text-gray-600 mt-2">提供具体的可执行工具（如“心药处方”），让心理调节落地。</p>
+                        </div>
+                        <div class="absolute left-1/2 transform -translate-x-1/2 w-8 h-8 bg-white border-4 border-[#004a7c] rounded-full z-10"></div>
+                        <div class="w-5/12 pl-8"></div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="relative flex items-center justify-between">
+                        <div class="w-5/12"></div>
+                        <div class="absolute left-1/2 transform -translate-x-1/2 w-8 h-8 bg-[#004a7c] rounded-full border-4 border-white shadow-md z-10"></div>
+                        <div class="w-5/12 pl-8 text-left">
+                            <h3 class="text-xl font-bold text-[#004a7c]">4. 品牌共鸣</h3>
+                            <p class="text-gray-600 mt-2">建立具有人文温度与专业深度的公信力，实现医患共情。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-[#002d51] text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <h3 class="serif text-2xl mb-4">“最好的科普，是让患者重新听懂自己身体的告白。”</h3>
+            <p class="text-blue-200 text-sm">叙事医学 | 神经免疫学 | 进化医学</p>
+            <div class="mt-8 text-xs text-blue-300">
+                Generated based on Clinical Source Report
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- Logic: Paradigm Toggle ---
+        const paradigmContent = {
+            traditional: `
+                <div class="flex flex-col justify-center h-full p-6 bg-gray-50 rounded-xl border-l-4 border-gray-400 animate-fade-in">
+                    <h3 class="text-xl font-bold text-gray-700 mb-4"><i class="fa-solid fa-brain mr-2"></i>单向知识传递</h3>
+                    <ul class="space-y-4 text-gray-600">
+                        <li class="flex items-start"><i class="fa-solid fa-xmark text-red-400 mt-1 mr-3"></i> 侧重病理机制、药物剂量与禁忌。</li>
+                        <li class="flex items-start"><i class="fa-solid fa-xmark text-red-400 mt-1 mr-3"></i> 沟通往往是单向、高位的指令式宣教。</li>
+                        <li class="flex items-start"><i class="fa-solid fa-xmark text-red-400 mt-1 mr-3"></i> 难以触动患者的认知核心，依从性差。</li>
+                    </ul>
+                </div>
+                <div class="flex items-center justify-center">
+                    <div class="text-center p-6 opacity-50 grayscale">
+                        <i class="fa-solid fa-file-medical text-6xl mb-4"></i>
+                        <p>冷冰冰的检查报告</p>
+                    </div>
+                </div>
+            `,
+            narrative: `
+                <div class="flex flex-col justify-center h-full p-6 bg-blue-50 rounded-xl border-l-4 border-[#20c997] animate-fade-in">
+                    <h3 class="text-xl font-bold text-[#004a7c] mb-4"><i class="fa-solid fa-comments mr-2"></i>意义共建与共情</h3>
+                    <ul class="space-y-4 text-gray-700">
+                        <li class="flex items-start"><i class="fa-solid fa-check text-[#20c997] mt-1 mr-3"></i> 关注“疾痛叙事”，将症状视为身体语言。</li>
+                        <li class="flex items-start"><i class="fa-solid fa-check text-[#20c997] mt-1 mr-3"></i> 探讨社会心理背景对生理的深层影响。</li>
+                        <li class="flex items-start"><i class="fa-solid fa-check text-[#20c997] mt-1 mr-3"></i> 医患联合认知建构，激活患者自愈力。</li>
+                    </ul>
+                </div>
+                <div class="flex items-center justify-center">
+                    <div class="text-center p-6 text-[#20c997]">
+                        <i class="fa-solid fa-hand-holding-heart text-6xl mb-4 animate-pulse"></i>
+                        <p class="font-bold">有温度的生命连接</p>
+                    </div>
+                </div>
+            `
+        };
+
+        function setParadigm(type) {
+            const container = document.getElementById('paradigm-content');
+            const btnTrad = document.getElementById('btn-traditional');
+            const btnNarr = document.getElementById('btn-narrative');
+
+            container.innerHTML = paradigmContent[type];
+
+            if (type === 'traditional') {
+                btnTrad.className = "px-6 py-2 rounded-lg font-medium text-sm transition-all-300 active-tab shadow-sm";
+                btnNarr.className = "px-6 py-2 rounded-lg font-medium text-sm transition-all-300 inactive-tab";
+            } else {
+                btnTrad.className = "px-6 py-2 rounded-lg font-medium text-sm transition-all-300 inactive-tab";
+                btnNarr.className = "px-6 py-2 rounded-lg font-medium text-sm transition-all-300 active-tab shadow-sm";
+            }
+        }
+
+        // Initialize Paradigm
+        setParadigm('traditional');
+
+
+        // --- Logic: Emotion Simulator (NEI) ---
+        function simulateEmotion(type) {
+            const config = {
+                positive: {
+                    il6: { val: "显著降低", desc: "慢性炎症消退，身体修复启动。", color: "text-[#20c997]", bg: "bg-green-50", icon: "fa-arrow-trend-down" },
+                    iga: { val: "分泌增加", desc: "呼吸道第一道防线强化。", color: "text-[#20c997]", bg: "bg-green-50", icon: "fa-arrow-trend-up" },
+                    opioid: { val: "释放增加", desc: "天然镇痛剂，提升舒适感。", color: "text-[#20c997]", bg: "bg-green-50", icon: "fa-arrow-trend-up" },
+                    nk: { val: "监控增强", desc: "肿瘤与病毒查杀效率提升。", color: "text-[#20c997]", bg: "bg-green-50", icon: "fa-arrow-trend-up" }
+                },
+                negative: {
+                    il6: { val: "浓度升高", desc: "引发慢性低度炎症，损伤组织。", color: "text-[#dc3545]", bg: "bg-red-50", icon: "fa-arrow-trend-up" },
+                    iga: { val: "显著抑制", desc: "免疫屏障受损，易感冒。", color: "text-[#dc3545]", bg: "bg-red-50", icon: "fa-arrow-trend-down" },
+                    opioid: { val: "释放减少", desc: "疼痛敏感度增加，身心不适。", color: "text-[#dc3545]", bg: "bg-red-50", icon: "fa-arrow-trend-down" },
+                    nk: { val: "裂解力下降", desc: "免疫监视失效，风险累积。", color: "text-[#dc3545]", bg: "bg-red-50", icon: "fa-arrow-trend-down" }
+                }
+            };
+
+            const data = config[type];
+            
+            ['il6', 'iga', 'opioid', 'nk'].forEach(key => {
+                const card = document.getElementById(`card-${key}`);
+                const valEl = document.getElementById(`val-${key}`);
+                const descEl = document.getElementById(`desc-${key}`);
+                const iconEl = document.getElementById(`icon-${key}`);
+
+                // Update text
+                valEl.innerText = data[key].val;
+                descEl.innerText = data[key].desc;
+                
+                // Update styles (reset then add)
+                valEl.className = `text-2xl font-bold mb-1 ${data[key].color} transition-colors duration-500`;
+                card.className = `p-4 rounded-xl border border-gray-100 transition-colors duration-500 ${data[key].bg}`;
+                
+                // Update Icon
+                iconEl.className = `fa-solid ${data[key].icon} ${data[key].color}`;
+            });
+        }
+
+        // Initialize Simulation
+        // Don't auto-run, let user click to see "Waiting..." turn into data.
+
+
+        // --- Logic: Symptom Toggles ---
+        function toggleSymptom(id) {
+            const el = document.getElementById(`desc-${id}`);
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+
+        // --- Logic: Navigation ---
+        function scrollToSection(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+            // Close mobile menu
+            document.getElementById('mobile-menu').classList.add('hidden');
+        }
+        
+        document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+
+
+        // --- Logic: Charts (Chart.js) ---
+        document.addEventListener("DOMContentLoaded", function() {
+            
+            // 1. Cold Risk Chart
+            const ctxCold = document.getElementById('coldRiskChart').getContext('2d');
+            new Chart(ctxCold, {
+                type: 'bar',
+                data: {
+                    labels: ['极高积极情绪', '中等积极情绪', '低积极情绪(对照)', '伴随慢性压力'],
+                    datasets: [{
+                        label: '感冒发病率 (%)',
+                        data: [25, 45, 55, 78],
+                        backgroundColor: [
+                            'rgba(32, 201, 151, 0.8)', // Green
+                            'rgba(54, 162, 235, 0.8)', // Blue
+                            'rgba(201, 203, 207, 0.8)', // Grey
+                            'rgba(220, 53, 69, 0.8)'   // Red
+                        ],
+                        borderColor: [
+                            'rgba(32, 201, 151, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(201, 203, 207, 1)',
+                            'rgba(220, 53, 69, 1)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y + '% 发病率';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: '发病率 (%)' }
+                        }
+                    }
+                }
+            });
+
+            // 2. Type C Personality Chart
+            const ctxTypeC = document.getElementById('typeCChart').getContext('2d');
+            new Chart(ctxTypeC, {
+                type: 'doughnut',
+                data: {
+                    labels: ['一般人群风险', 'C型性格增加风险'],
+                    datasets: [{
+                        label: '恶性肿瘤风险倍数',
+                        data: [1, 2], // Visualizing 1 vs +2 (Total 3x)
+                        backgroundColor: [
+                            'rgba(233, 236, 239, 0.8)',
+                            'rgba(220, 53, 69, 0.8)'
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if(context.label.includes('C型')) return '增加 200% (总风险3倍)';
+                                    return '基准风险';
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                },
+                plugins: [{
+                    id: 'textCenter',
+                    beforeDraw: function(chart) {
+                        var width = chart.width,
+                            height = chart.height,
+                            ctx = chart.ctx;
+            
+                        ctx.restore();
+                        var fontSize = (height / 100).toFixed(2);
+                        ctx.font = "bold " + fontSize + "em sans-serif";
+                        ctx.textBaseline = "middle";
+                        ctx.fillStyle = "#dc3545";
+            
+                        var text = "3倍",
+                            textX = Math.round((width - ctx.measureText(text).width) / 2),
+                            textY = height / 2;
+            
+                        ctx.fillText(text, textX, textY);
+                        ctx.save();
+                    }
+                }]
+            });
+        });
+    </script>
+    <style>
+        /* Custom Keyframe for fading in content */
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.4s ease-out forwards;
+        }
+    </style>
+</body>
+</html>
